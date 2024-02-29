@@ -25,7 +25,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: doxygen_doc generate
-    if: github.repository_owner == 'RT-Thread'
+    if: github.repository_owner == 'kurisaW'
     steps:
       - uses: actions/checkout@v4
         with:

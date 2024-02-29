@@ -15,7 +15,7 @@ jobs:
   spelling:
     name: Check Spelling
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'RT-Thread'
+    if: github.repository_owner == 'kurisaW'
     steps:
     - name: output ignore words info
       run: |
