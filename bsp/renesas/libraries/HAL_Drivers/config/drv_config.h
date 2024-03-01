@@ -7,6 +7,7 @@
  * Date           Author            Notes
  * 2021-07-29     KyleChan          first version
  * 2022-12-7      Vandoul           ADD ra4m2
+ * 2024-03-01     Wangyuqiang       Add rzn2l
  */
 
 #ifndef __DRV_CONFIG_H__
@@ -140,6 +141,25 @@ extern "C"
 #endif
 
 #endif /* SOC_SERIES_R7FA8M85 */
+
+
+#ifdef SOC_SERIES_R9A07G0
+#include "rzn2l/uart_config.h"
+#include "rzn2l/timer_config.h"
+
+#ifdef BSP_USING_PWM
+#include "rzn2l/pwm_config.h"
+#endif
+
+#ifdef BSP_USING_ADC
+#include "rzn2l/adc_config.h"
+#endif
+
+#ifdef BSP_USING_DAC
+#include "rzn2l/dac_config.h"
+#endif
+
+#endif /* SOC_SERIES_R9A07G0 */
 
 #ifdef __cplusplus
 }

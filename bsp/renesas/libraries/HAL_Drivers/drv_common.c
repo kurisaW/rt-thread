@@ -12,6 +12,11 @@
 #include <bsp_api.h>
 #include "board.h"
 
+#ifdef SOC_SERIES_R9A07G0
+static uint64_t rtt_timer_delay;
+extern fsp_vector_t g_sgi_ppi_vector_table[BSP_CORTEX_VECTOR_TABLE_ENTRIES];
+#endif
+
 #ifdef RT_USING_PIN
     #include <drv_gpio.h>
 #endif
@@ -28,7 +33,9 @@
 #include <finsh.h>
 static void reboot(uint8_t argc, char **argv)
 {
+#ifdef ARCH_ARM_CORTEX_M
     NVIC_SystemReset();
+#endif
 }
 MSH_CMD_EXPORT(reboot, Reboot System);
 #endif /* RT_USING_FINSH */
@@ -36,8 +43,12 @@ MSH_CMD_EXPORT(reboot, Reboot System);
 /* SysTick configuration */
 void rt_hw_systick_init(void)
 {
+#ifdef SOC_SERIES_R9A07G0
+    SysTimerInterrupt();
+#else
     SysTick_Config(SystemCoreClock / RT_TICK_PER_SECOND);
     NVIC_SetPriority(SysTick_IRQn, 0xFF);
+#endif
 }
 
 /**
@@ -48,6 +59,10 @@ void SysTick_Handler(void)
 {
     /* enter interrupt */
     rt_interrupt_enter();
+
+#ifdef SOC_SERIES_R9A07G0
+    __set_CNTP_CVAL(__get_CNTP_CVAL() + rtt_timer_delay);
+#endif
 
     rt_tick_increase();
 
@@ -78,6 +93,7 @@ void _Error_Handler(char *s, int num)
  */
 void rt_hw_us_delay(rt_uint32_t us)
 {
+#ifdef ARCH_ARM_CORTEX_M
     rt_uint32_t ticks;
     rt_uint32_t told, tnow, tcnt = 0;
     rt_uint32_t reload = SysTick->LOAD;
@@ -104,13 +120,47 @@ void rt_hw_us_delay(rt_uint32_t us)
             }
         }
     }
+#endif
 }
+
+#ifdef SOC_SERIES_R9A07G0
+
+void SysTimerInterrupt (void)
+{
+    uint64_t tempCNTPCT = __get_CNTPCT();
+
+    /* Wait for counter supply */
+    while (__get_CNTPCT() == tempCNTPCT)
+    {
+        R_BSP_SoftwareDelay(1, BSP_DELAY_UNITS_MICROSECONDS);
+    }
+
+    /* generic timer initialize */
+    /* set interrupt handler */
+    g_sgi_ppi_vector_table[(int32_t) BSP_VECTOR_NUM_OFFSET +
+                           NonSecurePhysicalTimerInt] = SysTick_Handler;
+
+    rtt_timer_delay = GENERIC_TIMER_CLK / RT_TICK_PER_SECOND;
+
+    /* set timer expiration from current counter value */
+    __set_CNTP_CVAL(__get_CNTPCT() + rtt_timer_delay);
+
+    /* configure CNTP_CTL to enable timer interrupts */
+    __set_CNTP_CTL(1);
+    R_BSP_IrqCfgEnable(NonSecurePhysicalTimerInt, NonSecurePhysicalTimerInt + 32, RT_NULL);
+}
+#endif
 
 /**
  * This function will initial STM32 board.
  */
 rt_weak void rt_hw_board_init()
 {
+#ifdef SOC_SERIES_R9A07G0
+    /* initialize hardware interrupt */
+    rt_hw_interrupt_init();
+#endif
+
     rt_hw_systick_init();
 
     /* Heap initialization */
@@ -139,8 +189,21 @@ rt_weak void rt_hw_board_init()
 #endif
 }
 
+int _c_int00()
+{
+    /* _args_main is the entry point called by _c_int00. We define it
+     * here to override the one defined by the compiler in args_main.c */
+
+    extern int rtthread_startup();
+
+    /* startup RT-Thread RTOS */
+    rtthread_startup();
+    /* never reach here*/
+    return 0;
+}
+
 FSP_CPP_HEADER
-void R_BSP_WarmStart(bsp_warm_start_event_t event);
+void R_BSP_WarmStart(bsp_warm_start_event_t event) BSP_PLACE_IN_SECTION(".warm_start");
 FSP_CPP_FOOTER
 
 /*******************************************************************************************************************//**

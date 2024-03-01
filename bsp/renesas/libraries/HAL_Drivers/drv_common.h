@@ -29,6 +29,11 @@ void _Error_Handler(char *s, int num);
 
 #define DMA_NOT_AVAILABLE ((DMA_INSTANCE_TYPE *)0xFFFFFFFFU)
 
+#ifdef SOC_SERIES_R9A07G0
+#define GENERIC_TIMER_CLK    (R_GSC->CNTFID0)
+void Generic_Timer_Interrupt_Handler (void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
