@@ -13,7 +13,7 @@ CPPPATH = [cwd + '/../include']
 src = ['clk.c']
 
 if GetDepend(['RT_USING_OFW']):
-    src += ['clk-fixed-rate.c']
+    src += ['dev_clk-fixed-rate.c']
 
 group = DefineGroup('DeviceDrivers', src, depend = [''], CPPPATH = CPPPATH)
 

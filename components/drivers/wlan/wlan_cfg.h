@@ -64,4 +64,4 @@ void rt_wlan_cfg_dump(void);
 }
 #endif
 
-#endif
+#endif /* __DEV_WLAN_CFG_H__ */
