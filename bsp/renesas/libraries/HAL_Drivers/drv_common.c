@@ -36,7 +36,8 @@ static void SysTimerInterrupt(void);
 static void reboot(uint8_t argc, char **argv)
 {
 #ifdef SOC_SERIES_R9A07G0
-    return;
+    R_BSP_RegisterProtectDisable(BSP_REG_PROTECT_LPC_RESET);
+    R_BSP_SystemReset();
 #else
     NVIC_SystemReset();
 #endif

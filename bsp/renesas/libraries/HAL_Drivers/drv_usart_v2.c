@@ -7,7 +7,7 @@
  * Date           Author            Notes
  * 2021-07-29     KyleChan          first version
  * 2023-10-17     Rbb666            add ra8 adapt
- * 2024-03-11    Wangyuqiang        add rzt2m adapt
+ * 2024-03-11     Wangyuqiang       add rzt/rzn adapt
  */
 
 #include <drv_usart_v2.h>
