@@ -22,16 +22,15 @@ on:
 jobs:
   assign-reviewers:
     runs-on: ubuntu-22.04
+    if: github.repository_owner == 'RT-Thread'
     permissions:
       issues: write
       pull-requests: write
       contents: read
-    env:
-      SUPER_SECRET: ${{ secrets.ACTION_TOKEN_AUTO_REVIEW }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+        
       - name: Get changed files
         id: changed_files
         run: |
@@ -40,9 +39,7 @@ jobs:
             -H "Authorization: Bearer ${{ github.token }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" | \
             jq -r '.[].filename')  # 使用 jq 提取文件名
-          
           echo "$changed_files" | grep -v '^MAINTAINERS$' > changed_files.txt
-
       - name: Parse MAINTAINERS file
         id: parse_maintainer
         run: |
@@ -163,7 +160,6 @@ jobs:
             echo "> ℹ️ **刷新CI状态操作需要具备仓库写入权限。**"
             echo "> ℹ️ **Refresh CI status operation requires repository Write permission.**"
           } > review_data.md
-
       - name: Post/Update comment
         id: post_comment
         run: |
