@@ -13,7 +13,7 @@
 name: Auto Review Assistant
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
   issue_comment:
@@ -25,12 +25,13 @@ jobs:
     if: github.repository_owner == 'RT-Thread'
     permissions:
       issues: write
-      pull-requests: write
+      pull-requests: read
       contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+        with:
+          persist-credentials: false
       - name: Get changed files
         id: changed_files
         run: |
@@ -143,8 +144,6 @@ jobs:
               fi
             done < tag_data.csv
             # 插入审查状态
-            cat review_status.md
-
             echo "---"
             echo "### 📝 Review Instructions"
             echo ""
@@ -160,28 +159,12 @@ jobs:
             echo "> ℹ️ **刷新CI状态操作需要具备仓库写入权限。**"
             echo "> ℹ️ **Refresh CI status operation requires repository Write permission.**"
           } > review_data.md
-      - name: Post/Update comment
-        id: post_comment
+      - name: Save PR number
         run: |
-          # 查找现有的 bot 评论
-          existing_comment=$(curl -s \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
-            jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
-          
-          if [[ -n "$existing_comment" ]]; then
-            # 更新现有评论
-            comment_id=$(echo "$existing_comment" | head -1 | base64 -d | jq -r .id)
-            echo "Updating existing comment $comment_id"
-            response=$(curl -s -X PATCH \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -d "$(jq -n --arg body "$(cat review_data.md)" '{body: $body}')" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/comments/$comment_id")
-          else
-            # 创建新评论
-            echo "Creating new comment"
-            response=$(curl -s -X POST \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -d "$(jq -n --arg body "$(cat review_data.md)" '{body: $body}')" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments")
-          fi
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+          mv /home/runner/work/rt-thread/rt-thread/review_data.md ./pr/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr
+          path: pr
