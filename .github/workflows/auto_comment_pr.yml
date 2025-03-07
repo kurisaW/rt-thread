@@ -1,13 +1,12 @@
 name: Comment on the pull request
 
 on:
-  pull_request:
-    branches:
-      - kurisaW:auto-reviewer
-      - auto-reviewer
   workflow_dispatch:
   workflow_run:
     workflows: ["Auto Review Assistant"]
+    branches:
+      - kurisaW:auto-reviewer
+      - auto-reviewer
     types:
       - completed
 
