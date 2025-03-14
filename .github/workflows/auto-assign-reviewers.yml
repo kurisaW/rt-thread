@@ -39,8 +39,6 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" | \
             jq -r '.[].filename')  # 使用 jq 提取文件名
           echo "$changed_files" | grep -v '^MAINTAINERS$' > changed_files.txt
-          #所有变更的文件
-          echo "$changed_files" | grep -v '^MAINTAINERS$'
       - name: Parse MAINTAINERS file
         id: parse_maintainer
         run: |
@@ -63,9 +61,6 @@ jobs:
               print tag "|" path "|" github_ids
             }
           ' MAINTAINERS > tag_data.csv
-          #tag_data.csv包含所有维护者
-          cat tag_data.csv
-
       - name: Generate reviewers list
         id: generate_reviewers
         run: |
@@ -79,10 +74,6 @@ jobs:
           done < tag_data.csv
           # 去重处理
           awk 'NF && !seen[$0]++' triggered_reviewers.txt > unique_reviewers.txt
-          # unique_reviewers包含需要通知的维护者
-          cat unique_reviewers.txt
-
-      # 这里感觉可以存储起来，下次运行的时候判断是否有新增的
       - name: Restore Reviewers Cache
         id: reviewers-cache-restore 
         uses: actions/cache/restore@v4
@@ -138,6 +129,12 @@ jobs:
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
         
+          if [[ -n "$existing_comment" ]]; then
+
+            echo "$r 第一次发送"
+          else
+            notified_users=""
+          fi
 
           if [[ -f unique_reviewers_bak.txt ]]; then
             notified_users=$(cat unique_reviewers_bak.txt | xargs)
@@ -172,7 +169,6 @@ jobs:
         id: generate_review
         run: |
           existing_comment=$(curl -s \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
 
@@ -185,8 +181,6 @@ jobs:
           fi
           # 获取历史已通知的审核者（从现有评论中提取）
           if [[ -n "$existing_comment" ]]; then
-          #   notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
-          #     grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
             echo "$r 第一次发送"
           else
             notified_users=""
