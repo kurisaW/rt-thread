@@ -181,7 +181,8 @@ jobs:
             notified_users=("${unique_reviewers[@]}")
           fi
           echo "-------------------------------------------------"
-          echo "$notified_users"
+          echo "${notified_users[*]}"
+          echo "-------------------------------------------------"
 
           # 将unique_reviewers对比notified_users,将相同的维护者放到existing_reviewers,最后把unique_reviewers放到notified_users
 
@@ -190,10 +191,8 @@ jobs:
           existing_reviewers=()
 
           for user in $unique_reviewers; do
-            if [[ " $notified_users " =~ " $user " ]]; then
+            if [[ " ${notified_users[@]} " =~ " $user " ]]; then
               existing_reviewers+=("$user") 
-            # else
-              # existing_reviewers+=("${user#@}")
             fi
           done
 
@@ -202,7 +201,7 @@ jobs:
           # existing_reviewers=()
 
 
-          # echo "-------------------------------------------------"
+         
           echo "${existing_reviewers[*]}"
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
