@@ -8,7 +8,7 @@
 # 2025-01-21     kurisaW      Initial version
 # 2025-03-14     hydevcode
 
-# Script Function Description: Assign PR reviews based on the MAINTAINERS list.asdasasaassasaasasss
+# Script Function Description: Assign PR reviews based on the MAINTAINERS list.
 
 name: Auto Review Assistant
 
@@ -25,18 +25,37 @@ jobs:
       issues: read
       pull-requests: write
       contents: read
+    env:
+      pr_num: ${{ github.event.pull_request.number }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: PR comment
+        if: ${{ github.event.issue.pull_request }}
+        runs-on: ubuntu-latest
+        steps:
+          - run: |
+              echo A comment on PR $NUMBER
+            env:
+              pr_num: ${{ github.event.issue.pull_request.number }}
       - name: Get changed files
         id: changed_files
         run: |
           # 通过 GitHub API 获取 PR 的变更文件列表
+
+          pr_num=${{ github.event.pull_request.number }}
+          if [[ ${{ github.event.issue.pull_request }} ]]; then
+            pr_num=${{ github.event.issue.pull_request.number }}
+          else
+            pr_num=${{ github.event.pull_request.number }}
+          fi
+          
           changed_files=$(curl -s \
             -H "Authorization: Bearer ${{ github.token }}" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" | \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_num/files" | \
             jq -r '.[].filename')  # 使用 jq 提取文件名
           echo "$changed_files" | grep -v '^MAINTAINERS$' > changed_files.txt
       - name: Parse MAINTAINERS file
@@ -125,7 +144,6 @@ jobs:
 
 
           existing_comment=$(curl -s \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
         
