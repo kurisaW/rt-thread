@@ -179,17 +179,17 @@ jobs:
 
 
           if [[ -f unique_reviewers_bak.txt ]]; then
-            notified_users=$(cat unique_reviewers.txt | xargs)
+            notified_users=$(cat unique_reviewers_bak.txt | xargs)
           else
             notified_users=""
           fi
           # 获取历史已通知的审核者（从现有评论中提取）
-          # if [[ -n "$existing_comment" ]]; then
+          if [[ -n "$existing_comment" ]]; then
           #   notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
           #     grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
-          # else
-          #   notified_users=("${unique_reviewers[@]}")
-          # fi
+          else
+            notified_users=""
+          fi
           echo "-------------------------------------------------"
           echo "${notified_users[*]}"
           echo "-------------------------------------------------"
