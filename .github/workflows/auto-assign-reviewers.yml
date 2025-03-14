@@ -168,7 +168,7 @@ jobs:
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
         
-          echo "$existing_comment"| base64 -d
+          # echo "$existing_comment"| base64 -d
 
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
           cat unique_reviewers.txt
@@ -177,7 +177,6 @@ jobs:
             notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
               grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
           else
-            notified_users=""
             notified_users=("${unique_reviewers[@]}")
           fi
           echo "-------------------------------------------------"
@@ -191,11 +190,18 @@ jobs:
           existing_reviewers=()
 
           for user in $unique_reviewers; do
-            if [[ " ${notified_users[@]} " =~ " $user " ]]; then
-              existing_reviewers+=("$user") 
+            # if [[ " ${notified_users[@]} " =~ " $user " ]]; then
+            #   existing_reviewers+=("$user") 
+            # fi
+            if printf "%s\n" "${notified_users[@]}" | grep -Fxq -- "$user"; then
+                existing_reviewers+=("$user") 
             fi
           done
-
+          # if printf "%s\n" "${notified_users[@]}" | grep -Fxq -- "$r"; then
+          #     echo "$r 存在于数组中"
+          # else
+          #     echo "$r 不存在于数组中"
+          # fi
           # # 对比差异：新增审核者需要@，已有审核者去@
           # new_reviewers=()
           # existing_reviewers=()
