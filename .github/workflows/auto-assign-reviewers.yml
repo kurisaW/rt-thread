@@ -80,7 +80,7 @@ jobs:
         uses: actions/cache/restore@v4
         with: 
           path: unique_reviewers_bak.txt
-          key: ${{ runner.os }}-unique-reviewers
+          key: ${{ runner.os }}-unique-reviewers-${{ hashFiles('unique_reviewers_bak.txt')}}
 
       - name: Existing Reviewers
         if: steps.reviewers-cache-restore.outputs.cache-hit == 'true'
