@@ -187,6 +187,7 @@ jobs:
           if [[ -n "$existing_comment" ]]; then
           #   notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
           #     grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
+            echo "$r 第一次发送"
           else
             notified_users=""
           fi
