@@ -17,6 +17,8 @@ on:
     types: [opened, synchronize, reopened]
   pull_request_comment:
     types: [created]
+    branches:
+      - 'master'
 
 jobs:
   assign-reviewers:
