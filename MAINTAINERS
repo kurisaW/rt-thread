@@ -47,7 +47,7 @@ owners: ixd (kurisaW) <reviewer1@example.com>
 
 tag: kernel
 path: src
-owners: ixd (hydevcode) <reviewer1@example.com>
+owners: ixd (hydevcode) <reviewer1@example.com>,ixd (test) <reviewer1@example.com>
 
 tag: kernel
 path: include
