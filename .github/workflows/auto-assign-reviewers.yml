@@ -63,7 +63,7 @@ jobs:
               print tag "|" path "|" github_ids
             }
           ' MAINTAINERS > tag_data.csv
-          #tag_data.csv包含所有人维护者
+          #tag_data.csv包含所有维护者
           cat tag_data.csv
 
       - name: Generate reviewers list
@@ -79,12 +79,22 @@ jobs:
           done < tag_data.csv
           # 去重处理
           awk 'NF && !seen[$0]++' triggered_reviewers.txt > unique_reviewers.txt
+          # unique_reviewers包含需要通知的维护者
           cat unique_reviewers.txt
+
+      # 这里感觉可以存储起来，下次运行的时候判断是否有新增的
+      - name: Reviewers Cache
+        id: reviewers-cache
+        uses: action/cache@v4
+        with: 
+          path: unique_reviewers.txt
+          key: ${{ runner.os }}-unique-reviewers-${{ hashFiles('unique_reviewers.txt') }}
+      
       - name: Get approval status
         id: get_approval
         run: |
           
-          #主要用于判断是否审查
+          #主要用于判断是否审查,只需要给出已审批的人
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           reviewers=$(cat unique_reviewers.txt | tr '\n' '|')
           
@@ -92,12 +102,27 @@ jobs:
           comments=$(curl -s \
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments")
 
-          echo "$comments"
-          echo "-------------------------------------------------"
-          echo '#!/bin/bash' > approval_data.sh
-          echo 'declare -A approvals=()' >> approval_data.sh
+          # echo "$comments"
+          # echo "-------------------------------------------------"
+          # echo '#!/bin/bash' > approval_data.sh
+          # echo 'declare -A approvals=()' >> approval_data.sh
           
-          # 使用 jq 解析包含 LGTM 的有效评论
+          # # 使用 jq 解析包含 LGTM 的有效评论
+          # jq -r --arg reviewers "$reviewers" '
+          #   .[] | 
+          #   select(.user.login != "github-actions[bot]") |  # 排除 bot 的评论
+          #   select(.body | test("^\\s*LGTM\\s*$"; "i")) |   # 匹配 LGTM 评论（不区分大小写）
+          #   .user.login as $user |
+          #   "@\($user)" as $mention |
+          #   select($mention | inside($reviewers)) |         # 过滤有效审查者
+          #   "approvals[\"\($mention)\"]=\"\(.created_at)\""  # 记录审批时间
+          # ' <<< "$comments" >> approval_data.sh
+          
+          # # 加载审查数据并生成状态报告
+          # chmod +x approval_data.sh
+          # source ./approval_data.sh
+          # cat approval_data.sh
+
           jq -r --arg reviewers "$reviewers" '
             .[] | 
             select(.user.login != "github-actions[bot]") |  # 排除 bot 的评论
@@ -105,26 +130,35 @@ jobs:
             .user.login as $user |
             "@\($user)" as $mention |
             select($mention | inside($reviewers)) |         # 过滤有效审查者
-            "approvals[\"\($mention)\"]=\"\(.created_at)\""  # 记录审批时间
-          ' <<< "$comments" >> approval_data.sh
-          
-          # 加载审查数据并生成状态报告
-          chmod +x approval_data.sh
-          source ./approval_data.sh
-          cat approval_data.sh
+            "\($mention) \(.created_at)"                   # 输出审查者和时间
+          ' <<< "$comments" >> approval_data.txt
 
-          {
-            echo "---"
-            echo "### 📊 Current Review Status (Last Updated: $current_time)"
-            while read -r reviewer; do
-              if [[ -n "${approvals[$reviewer]}" ]]; then
-                timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
-                echo "- ✅ **$reviewer** Reviewed On $timestamp"
-              else
-                echo "- ⌛ **$reviewer** Pending Review"
-              fi
-            done < unique_reviewers.txt
-          } > review_status.md
+          cat approval_data.txt
+
+          # existing_comment=$(curl -s \
+          # -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          # "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
+          # jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
+        
+
+
+          # {
+          #   echo "---"
+          #   echo "### 📊 Current Review Status (Last Updated: $current_time)"
+          #   while read -r reviewer; do
+          #     if [[ -n "${approvals[$reviewer]}" ]]; then
+          #       timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
+          #       if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
+          #           formatted_reviewers+="$r "       # 新审核者带@
+          #       else
+          #           formatted_reviewers+="${r#@} "   # 已有审核者去@
+          #       fi
+          #       echo "- ✅ **$reviewer** Reviewed On $timestamp"
+          #     else
+          #       echo "- ⌛ **$reviewer** Pending Review"
+          #     fi
+          #   done < unique_reviewers.txt
+          # } > review_status.md
 
       - name: Generate review data
         id: generate_review
@@ -138,36 +172,38 @@ jobs:
           # 获取历史已通知的审核者（从现有评论中提取）
           if [[ -n "$existing_comment" ]]; then
             notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
-              grep -oP '<!-- NOTIFIED_REVIEWERS: \K[^>]+' )
+              grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
+              
           else
             notified_users=""
           fi
           echo "-------------------------------------------------"
           echo "$notified_users"
-          # 生成待通知的新审核者列表
-          current_reviewers=$(cat unique_reviewers.txt | xargs)
-          echo "-------------------------------------------------"
-          cat unique_reviewers.txt
-          echo "-------------------------------------------------"
-          echo "$current_reviewers"
-          # 对比差异：新增审核者需要@，已有审核者去@
-          new_reviewers=()
-          existing_reviewers=()
-          for user in $current_reviewers; do
-            if [[ " $notified_users " =~ " $user " ]]; then
-              existing_reviewers+=("${user#@}")  # 去掉@前缀
-            else
-              new_reviewers+=("$user")
-            fi
-          done
 
-          echo "-------------------------------------------------"
-          echo "$new_reviewers"
-          echo "-------------------------------------------------"
-          echo "$existing_reviewers"
+          # 生成待通知的新审核者列表
+          # current_reviewers=$(cat unique_reviewers.txt | xargs)
+          # echo "-------------------------------------------------"
+          # cat unique_reviewers.txt
+          # echo "-------------------------------------------------"
+          # echo "$current_reviewers"
+          # # 对比差异：新增审核者需要@，已有审核者去@
+          # new_reviewers=()
+          # existing_reviewers=()
+          # for user in $current_reviewers; do
+          #   if [[ " $notified_users " =~ " $user " ]]; then
+          #     existing_reviewers+=("${user#@}")  # 去掉@前缀
+          #   else
+          #     new_reviewers+=("$user")
+          #   fi
+          # done
+
+          # echo "-------------------------------------------------"
+          # echo "$new_reviewers"
+          # echo "-------------------------------------------------"
+          # echo "${existing_reviewers[*]"
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
-            echo "<!-- NOTIFIED_REVIEWERS: ${new_reviewers[*]} ${existing_reviewers[*]} -->"
+            echo "<!-- NOTIFIED_REVIEWERS: ${notified_users[*]} -->"
 
             # 生成审查分配信息
             echo "## 📌 Code Review Assignment"
@@ -181,14 +217,14 @@ jobs:
                 # 处理评审者显示逻辑
                 formatted_reviewers=""
                 for r in $reviewers; do
-                  if [[ " ${new_reviewers[@]} " =~ " $r " ]]; then
+                  if [[ " ${notified_users[@]} " =~ " $r " ]]; then
                     formatted_reviewers+="$r "       # 新审核者带@
                   else
                     formatted_reviewers+="${r#@} "   # 已有审核者去@
                   fi
                 done
+                echo "**Reviewers:** $formatted_reviewers  "
 
-                echo "**Reviewers:** $reviewers  "
                 echo "<details>"
                 echo "<summary><b>Changed Files</b> (Click to expand)</summary>"
                 echo ""
@@ -199,7 +235,7 @@ jobs:
               fi
             done < tag_data.csv
             # 插入审查状态
-            cat review_status.md
+            # cat review_status.md
 
             echo "---"
             echo "### 📝 Review Instructions"
