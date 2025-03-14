@@ -6,7 +6,7 @@
 # Change Logs:
 # Date           Author       Notes
 # 2025-01-21     kurisaW      Initial version
-#
+# 2025-03-14     hydevcode
 
 # Script Function Description: Assign PR reviews based on the MAINTAINERS list.asdasasaassasaasasss
 
@@ -150,12 +150,14 @@ jobs:
             echo "### 📊 Current Review Status (Last Updated: $current_time)"
             while read -r reviewer; do
               formatted_reviewers=""
-              if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
-                  formatted_reviewers+="${r#@}"
-              else
-                  formatted_reviewers+="$r"
-              fi
-              echo "$reviewer"
+              # for r in $reviewers; do
+                if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
+                    formatted_reviewers+="${reviewer#@}"
+                else
+                    formatted_reviewers+="$reviewer"
+                fi
+              # done
+            
               if [[ -n "${approvals[$reviewer]}" ]]; then
                 timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
                 
