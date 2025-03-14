@@ -83,13 +83,17 @@ jobs:
           cat unique_reviewers.txt
 
       # 这里感觉可以存储起来，下次运行的时候判断是否有新增的
-      - name: Reviewers Cache
-        id: reviewers-cache
-        uses: actions/cache@v4
+      - name: Restore Reviewers Cache
+        id: reviewers-cache-restore 
+        uses: actions/cache/restore@v4
         with: 
-          path: unique_reviewers.txt
+          path: unique_reviewers_bak.txt
           key: ${{ runner.os }}-unique-reviewers-${{ hashFiles('unique_reviewers.txt') }}
-      
+
+      - name: Existing Reviewers
+        if: steps.reviewers-cache-restore.outputs.cache-hit != 'true'
+        run: |
+          cat unique_reviewers_bak.txt
       - name: Get approval status
         id: get_approval
         run: |
@@ -262,6 +266,7 @@ jobs:
           } > review_data.md
           echo "-------------------------------------------------"
           cat review_data.md
+          cp unique_reviewers.txt unique_reviewers_bak.txt
       # - name: Save PR number
       #   run: |
       #     mkdir -p ./pr
@@ -273,7 +278,13 @@ jobs:
       #   with:
       #     name: pr
       #     path: pr
-      
+      - name: Restore Reviewers Save
+        id: reviewers-cache-save
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            unique_reviewers_bak.txt
+          key: ${{ steps.reviewers-cache-restore.outputs.cache-primary-key }}
       - name: Post/Update comment
         id: post_comment
         run: |
