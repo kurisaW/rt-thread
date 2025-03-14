@@ -175,7 +175,7 @@ jobs:
           # 获取历史已通知的审核者（从现有评论中提取）
           if [[ -n "$existing_comment" ]]; then
             notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
-              grep -oP '<!-- NOTIFIED_REVIEWERS:\K@[^ ]+' )
+              grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
           else
             notified_users=("${unique_reviewers[@]}")
           fi
@@ -190,12 +190,12 @@ jobs:
           existing_reviewers=()
 
           for user in $unique_reviewers; do
-            # if [[ " ${notified_users[@]} " =~ " $user " ]]; then
-            #   existing_reviewers+=("$user") 
-            # fi
-            if printf "%s\n" "${notified_users[@]}" | grep -Fxq -- "$user"; then
-                existing_reviewers+=("$user") 
+            if [[ " ${notified_users[@]} " =~ " $user " ]]; then
+              existing_reviewers+=("$user") 
             fi
+            # if printf "%s\n" "${notified_users[@]}" | grep -Fxq -- "$user"; then
+            #     existing_reviewers+=("$user") 
+            # fi
           done
           # if printf "%s\n" "${notified_users[@]}" | grep -Fxq -- "$r"; then
           #     echo "$r 存在于数组中"
@@ -211,7 +211,7 @@ jobs:
           echo "${existing_reviewers[*]}"
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
-            echo "<!-- NOTIFIED_REVIEWERS: ${unique_reviewers[*]} -->"
+            echo "<!-- NOTIFIED_REVIEWERS:  ${unique_reviewers[*]} -->"
 
             # 生成审查分配信息
             echo "## 📌 Code Review Assignment"
