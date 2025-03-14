@@ -85,7 +85,7 @@ jobs:
       # 这里感觉可以存储起来，下次运行的时候判断是否有新增的
       - name: Reviewers Cache
         id: reviewers-cache
-        uses: action/cache@v4
+        uses: actions/cache@v4
         with: 
           path: unique_reviewers.txt
           key: ${{ runner.os }}-unique-reviewers-${{ hashFiles('unique_reviewers.txt') }}
