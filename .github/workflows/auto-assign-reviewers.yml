@@ -144,17 +144,18 @@ jobs:
           else
             notified_users=""
           fi
-          
+          echo "${notified_users[@]}"
           {
             echo "---"
             echo "### 📊 Current Review Status (Last Updated: $current_time)"
             while read -r reviewer; do
               formatted_reviewers=""
               if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
-                  formatted_reviewers="${r#@}"
+                  formatted_reviewers+="${r#@}"
               else
-                  formatted_reviewers="$r"
+                  formatted_reviewers+="$r"
               fi
+              echo "$reviewer"
               if [[ -n "${approvals[$reviewer]}" ]]; then
                 timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
                 
