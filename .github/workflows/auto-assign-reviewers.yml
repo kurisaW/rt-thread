@@ -104,8 +104,6 @@ jobs:
           comments=$(curl -s \
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments")
 
-          echo "$comments"
-          echo "-------------------------------------------------"
           echo '#!/bin/bash' > approval_data.sh
           echo 'declare -A approvals=()' >> approval_data.sh
           
@@ -123,7 +121,6 @@ jobs:
           # 加载审查数据并生成状态报告
           chmod +x approval_data.sh
           source ./approval_data.sh
-          cat approval_data.sh
 
           jq -r --arg reviewers "$reviewers" '
             .[] | 
@@ -135,7 +132,6 @@ jobs:
             "\($mention) \(.created_at)"                   # 输出审查者和时间
           ' <<< "$comments" >> approval_data.txt
 
-          cat approval_data.txt
 
           existing_comment=$(curl -s \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -148,7 +144,7 @@ jobs:
           else
             notified_users=""
           fi
-
+          
           {
             echo "---"
             echo "### 📊 Current Review Status (Last Updated: $current_time)"
@@ -162,9 +158,9 @@ jobs:
               if [[ -n "${approvals[$reviewer]}" ]]; then
                 timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
                 
-                echo "- ✅ **$formatted_reviewers** Reviewed On $timestamp"
+                echo "- ✅ ** $formatted_reviewers ** Reviewed On $timestamp"
               else
-                echo "- ⌛ **$formatted_reviewers** Pending Review"
+                echo "- ⌛ ** $formatted_reviewers ** Pending Review"
               fi
             done < unique_reviewers.txt
           } > review_status.md
@@ -201,7 +197,6 @@ jobs:
             fi
           done
 
-          echo "${existing_reviewers[*]}"
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
             echo "<!-- NOTIFIED_REVIEWERS:  ${unique_reviewers[*]} -->"
@@ -253,7 +248,7 @@ jobs:
             echo "> ℹ️ **刷新CI状态操作需要具备仓库写入权限。**"
             echo "> ℹ️ **Refresh CI status operation requires repository Write permission.**"
           } > review_data.md
-          echo "-------------------------------------------------"
+
           cp unique_reviewers.txt unique_reviewers_bak.txt
       - name: Restore Reviewers Save
         id: reviewers-cache-save
