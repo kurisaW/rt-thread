@@ -22,7 +22,7 @@ jobs:
   assign-reviewers:
     runs-on: ubuntu-22.04
     permissions:
-      issues: write
+      issues: read
       pull-requests: write
       contents: read
     steps:
@@ -173,29 +173,30 @@ jobs:
           if [[ -n "$existing_comment" ]]; then
             notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
               grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
-              
           else
             notified_users=""
           fi
           echo "-------------------------------------------------"
           echo "$notified_users"
 
+          # 将unique_reviewers对比notified_users,将相同的维护者放到existing_reviewers,最后把unique_reviewers放到notified_users
+
+
           # 生成待通知的新审核者列表
-          # current_reviewers=$(cat unique_reviewers.txt | xargs)
-          # echo "-------------------------------------------------"
-          # cat unique_reviewers.txt
-          # echo "-------------------------------------------------"
-          # echo "$current_reviewers"
+          unique_reviewers=$(cat unique_reviewers.txt | xargs)
+          existing_reviewers=()
+
+          for user in $unique_reviewers; do
+            if [[ " $notified_users " =~ " $user " ]]; then
+              existing_reviewers+=("$user") 
+            # else
+              # existing_reviewers+=("${user#@}")
+            fi
+          done
+
           # # 对比差异：新增审核者需要@，已有审核者去@
           # new_reviewers=()
           # existing_reviewers=()
-          # for user in $current_reviewers; do
-          #   if [[ " $notified_users " =~ " $user " ]]; then
-          #     existing_reviewers+=("${user#@}")  # 去掉@前缀
-          #   else
-          #     new_reviewers+=("$user")
-          #   fi
-          # done
 
           # echo "-------------------------------------------------"
           # echo "$new_reviewers"
@@ -203,7 +204,7 @@ jobs:
           # echo "${existing_reviewers[*]"
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
-            echo "<!-- NOTIFIED_REVIEWERS: ${notified_users[*]} -->"
+            echo "<!-- NOTIFIED_REVIEWERS: ${unique_reviewers[*]} -->"
 
             # 生成审查分配信息
             echo "## 📌 Code Review Assignment"
@@ -217,7 +218,7 @@ jobs:
                 # 处理评审者显示逻辑
                 formatted_reviewers=""
                 for r in $reviewers; do
-                  if [[ " ${notified_users[@]} " =~ " $r " ]]; then
+                  if [[ " ${existing_reviewers[@]} " =~ " $r " ]]; then
                     formatted_reviewers+="$r "       # 新审核者带@
                   else
                     formatted_reviewers+="${r#@} "   # 已有审核者去@
