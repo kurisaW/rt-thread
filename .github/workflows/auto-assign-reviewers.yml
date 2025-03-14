@@ -176,17 +176,25 @@ jobs:
 
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
           cat unique_reviewers.txt
-          # 获取历史已通知的审核者（从现有评论中提取）
-          if [[ -n "$existing_comment" ]]; then
-            notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
-              grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
+
+
+          if [[ -f unique_reviewers_bak.txt ]]; then
+            notified_users=$(cat unique_reviewers.txt | xargs)
           else
             notified_users=("${unique_reviewers[@]}")
           fi
+          # 获取历史已通知的审核者（从现有评论中提取）
+          # if [[ -n "$existing_comment" ]]; then
+          #   notified_users=$(echo "$existing_comment" | base64 -d | jq -r '.body' | 
+          #     grep -oP '<!-- NOTIFIED_REVIEWERS: \K@[^ ]+' )
+          # else
+          #   notified_users=("${unique_reviewers[@]}")
+          # fi
           echo "-------------------------------------------------"
           echo "${notified_users[*]}"
           echo "-------------------------------------------------"
 
+          
           # 将unique_reviewers对比notified_users,将相同的维护者放到existing_reviewers,最后把unique_reviewers放到notified_users
 
 
