@@ -181,7 +181,7 @@ jobs:
           if [[ -f unique_reviewers_bak.txt ]]; then
             notified_users=$(cat unique_reviewers.txt | xargs)
           else
-            notified_users=("${unique_reviewers[@]}")
+            notified_users=""
           fi
           # 获取历史已通知的审核者（从现有评论中提取）
           # if [[ -n "$existing_comment" ]]; then
@@ -194,7 +194,7 @@ jobs:
           echo "${notified_users[*]}"
           echo "-------------------------------------------------"
 
-          
+
           # 将unique_reviewers对比notified_users,将相同的维护者放到existing_reviewers,最后把unique_reviewers放到notified_users
 
 
@@ -203,6 +203,8 @@ jobs:
 
           for user in $unique_reviewers; do
             if [[ " ${notified_users[@]} " =~ " $user " ]]; then
+              echo "$r 不存在于数组中"
+            else
               existing_reviewers+=("$user") 
             fi
             # if printf "%s\n" "${notified_users[@]}" | grep -Fxq -- "$user"; then
