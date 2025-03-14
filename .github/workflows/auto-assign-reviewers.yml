@@ -91,7 +91,7 @@ jobs:
           key: ${{ runner.os }}-unique-reviewers
 
       - name: Existing Reviewers
-        if: steps.reviewers-cache-restore.outputs.cache-hit != 'true'
+        if: steps.reviewers-cache-restore.outputs.cache-hit == 'true'
         run: |
           cat unique_reviewers_bak.txt
       - name: Get approval status
