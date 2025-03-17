@@ -269,10 +269,11 @@ jobs:
       - name: Restore Reviewers Save
         id: reviewers-cache-save
         uses: actions/cache/save@v4
+        if: always() && steps.reviewers-cache-restore.outputs.cache-hit != 'true'
         with:
           path: |
             unique_reviewers_bak.txt
-          key: ${{ steps.reviewers-cache-restore.outputs.cache-primary-key }}
+          key: ${{ runner.os }}-unique-reviewers-${{ hashFiles('unique_reviewers_bak.txt')}}
       - name: Post/Update comment
         id: post_comment
         run: |
