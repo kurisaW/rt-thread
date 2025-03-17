@@ -17,6 +17,7 @@ on:
     types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
+    if: github.event.issue.pull_request
     branches:
       - 'master'
 
@@ -28,6 +29,19 @@ jobs:
       pull-requests: write
       contents: read
     steps:
+      - name: Extract PR number
+        id: extract-pr
+        env:
+          PR_URL: ${{ github.event.issue.pull_request.url }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "PR_NUMBER:$PR_NUMBER"
+          if [[ !PR_NUMBER ]]; then
+            echo "PR_NUMBER:$PR_NUMBER"
+          else
+            PR_NUMBER=$(echo $PR_URL | awk -F/ '{print $NF}')
+          fi
+          echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_OUTPUT
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -37,9 +51,10 @@ jobs:
         run: |
           # 通过 GitHub API 获取 PR 的变更文件列表
           
+
           changed_files=$(curl -s \
             -H "Authorization: Bearer ${{ github.token }}" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" | \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.extract-pr.outputs.PR_NUMBER }}/files" | \
             jq -r '.[].filename')  # 使用 jq 提取文件名
           echo "$changed_files" | grep -v '^MAINTAINERS$' > changed_files.txt
       - name: Parse MAINTAINERS file
@@ -96,7 +111,7 @@ jobs:
           
           # 获取 PR 的所有评论
           comments=$(curl -s \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments")
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments")
 
           echo '#!/bin/bash' > approval_data.sh
           echo 'declare -A approvals=()' >> approval_data.sh
@@ -128,7 +143,7 @@ jobs:
 
 
           existing_comment=$(curl -s \
-          "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
+          "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
         
           if [[ -n "$existing_comment" ]]; then
@@ -171,7 +186,7 @@ jobs:
         id: generate_review
         run: |
           existing_comment=$(curl -s \
-          "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
+          "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
 
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
@@ -262,7 +277,7 @@ jobs:
           # 查找现有的 bot 评论
           existing_comment=$(curl -s \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
             jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
           
           if [[ -n "$existing_comment" ]]; then
@@ -279,5 +294,5 @@ jobs:
             response=$(curl -s -X POST \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -d "$(jq -n --arg body "$(cat review_data.md)" '{body: $body}')" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments")
+              "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments")
           fi
