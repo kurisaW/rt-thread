@@ -36,11 +36,13 @@ jobs:
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           echo "PR_NUMBER:$PR_NUMBER"
-          if [[ !PR_NUMBER ]]; then
-            echo "PR_NUMBER:$PR_NUMBER"
-          else
-            PR_NUMBER=$(echo $PR_URL | awk -F/ '{print $NF}')
-          fi
+          # if [[ !PR_NUMBER ]]; then
+          #   echo "PR_NUMBER:$PR_NUMBER"
+          # else
+          #   PR_NUMBER=$(echo $PR_URL | awk -F/ '{print $NF}')
+          # fi
+          PR_NUMBER=$(echo $PR_URL | awk -F/ '{print $NF}')
+          echo "PR_NUMBER:$PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_OUTPUT
       - name: Checkout code
         uses: actions/checkout@v4
