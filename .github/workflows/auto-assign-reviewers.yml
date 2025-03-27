@@ -197,7 +197,7 @@ jobs:
 
 
           echo "$existing_comment"
-          
+
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
 
 
@@ -240,17 +240,8 @@ jobs:
                   for r in $reviewers; do
                     formatted_reviewers+="${r#@} "
                   done
+                  echo "**Reviewers:** $formatted_reviewers  "
                 fi
-                # 处理评审者显示逻辑
-                # formatted_reviewers=""
-                # for r in $reviewers; do
-                #   if [[ " ${existing_reviewers[@]} " =~ " $r " ]]; then
-                #     formatted_reviewers+="$r "       # 新审核者带@
-                #   else
-                #     formatted_reviewers+="${r#@} "   # 已有审核者去@
-                #   fi
-                # done
-                # echo "**Reviewers:** $formatted_reviewers  "
 
                 echo "<details>"
                 echo "<summary><b>Changed Files</b> (Click to expand)</summary>"
