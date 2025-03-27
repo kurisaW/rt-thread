@@ -47,6 +47,22 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.extract-pr.outputs.PR_NUMBER }}/files" | \
             jq -r '.[].filename')  # 使用 jq 提取文件名
           echo "$changed_files" | grep -v '^MAINTAINERS$' > changed_files.txt
+          
+          existing_comment=$(curl -s \
+          "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
+          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} | @base64')
+
+          comment_time=""
+          if [[ ! -z "$existing_comment" ]]; then
+            comment_time=$(echo "$existing_comment" | head -1 | base64 -d | jq -r .updated_at)
+            comment_time=$(date -d "$comment_time" +%s)
+            echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
+          else
+            echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
+          fi
+
+          echo "COMMENT_TIME=${comment_time}"
+          
       - name: Parse MAINTAINERS file
         id: parse_maintainer
         run: |
@@ -99,7 +115,7 @@ jobs:
           path: |
             unique_tags_bak.txt
             unique_reviewers_bak.txt
-          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}
+          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}-${{ steps.changed_files.outputs.COMMENT_TIME }}
 #尝试获取缓存，如果没有则缓存，如果有怎么办？
 #save保存？
       - name: Existing Reviewers
@@ -145,18 +161,6 @@ jobs:
             "\($mention) \(.created_at)"                   # 输出审查者和时间
           ' <<< "$comments" >> approval_data.txt
 
-
-          # existing_comment=$(curl -s \
-          # "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
-          # jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
-
-          # if [[ -n "$existing_comment" ]]; then
-
-          #   echo "$r 第一次发送"
-          # else
-          #   notified_users=""
-          # fi
-
           notified_users=""
           if [[ -f unique_reviewers_bak.txt ]]; then
             notified_users=$(cat unique_reviewers_bak.txt | xargs)
@@ -190,15 +194,6 @@ jobs:
       - name: Generate review data
         id: generate_review
         run: |
-          existing_comment=$(curl -s \
-          "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
-          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} | @base64')
-          comment_time=$(echo "$existing_comment" | head -1 | base64 -d | jq -r .updated_at)
-          echo "$comment_time"
-          comment_time=""
-          comment_time=$(date -d "$comment_time" +%s)
-          echo "$comment_time"
-          unique_reviewers=$(cat unique_reviewers.txt | xargs)
 
 
           unique_tags=$(cat unique_tags.txt | xargs)
@@ -275,14 +270,7 @@ jobs:
 
           cp unique_reviewers.txt unique_reviewers_bak.txt
           cp unique_tags.txt unique_tags_bak.txt
-      - name: Restore Reviewers Save
-        id: reviewers-cache-save
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            unique_tags_bak.txt
-            unique_reviewers_bak.txt
-          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}
+
       - name: Post/Update comment
         id: post_comment
         run: |
@@ -308,3 +296,30 @@ jobs:
               -d "$(jq -n --arg body "$(cat review_data.md)" '{body: $body}')" \
               "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments")
           fi
+      - name: Get Comment Time
+        id: get_comment_time
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          existing_comment=$(curl -s \
+          "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
+          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} | @base64')
+
+          comment_time=""
+          if [[ ! -z "$existing_comment" ]]; then
+            comment_time=$(echo "$existing_comment" | head -1 | base64 -d | jq -r .updated_at)
+            comment_time=$(date -d "$comment_time" +%s)
+            echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
+          else
+            echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
+          fi
+
+          echo "COMMENT_TIME=${comment_time}"
+      - name: Restore Reviewers Save
+        id: reviewers-cache-save
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            unique_tags_bak.txt
+            unique_reviewers_bak.txt
+          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}-${{ steps.get_comment_time.outputs.COMMENT_TIME }}
