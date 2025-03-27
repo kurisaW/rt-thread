@@ -16,11 +16,11 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
 
-  issue_comment:
-    types: [created]
-    if: github.event.issue.pull_request
-    branches:
-      - 'master'
+  # issue_comment:
+  #   types: [created]
+  #   if: github.event.issue.pull_request
+  #   branches:
+  #     - 'master'
 
 jobs:
   assign-reviewers:
@@ -32,18 +32,8 @@ jobs:
     steps:
       - name: Extract PR number
         id: extract-pr
-        env:
-          PR_URL: ${{ github.event.issue.pull_request.url }}
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
-
-          if [ -z "$PR_NUMBER" ]; then
-            PR_NUMBER=$(echo $PR_URL | awk -F/ '{print $NF}')
-          else
-            echo "PR_NUMBER:$PR_NUMBER"
-          fi
-          
-          echo "PR_NUMBER:$PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_OUTPUT
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,10 +43,7 @@ jobs:
         id: changed_files
         run: |
           # 通过 GitHub API 获取 PR 的变更文件列表
-          
-
           changed_files=$(curl -s \
-            -H "Authorization: Bearer ${{ github.token }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.extract-pr.outputs.PR_NUMBER }}/files" | \
             jq -r '.[].filename')  # 使用 jq 提取文件名
           echo "$changed_files" | grep -v '^MAINTAINERS$' > changed_files.txt
@@ -64,7 +51,7 @@ jobs:
         id: parse_maintainer
         run: |
           # 使用 AWK 解析 MAINTAINERS 文件格式：
-          # 提取 tag（标签）、path（路径）和 owners（维护者 GitHub ID）
+          # 提取 tag(标签)、path(路径)和 owners(维护者 GitHub ID)
           awk '
             /^tag:/ { 
               tag = substr($0, index($0, $2))  # 提取标签内容
@@ -82,26 +69,37 @@ jobs:
               print tag "|" path "|" github_ids
             }
           ' MAINTAINERS > tag_data.csv
+          cat tag_data.csv
       - name: Generate reviewers list
         id: generate_reviewers
         run: |
           # 根据变更文件路径匹配维护者规则
           rm -f triggered_reviewers.txt
+          rm -f triggered_tags.txt
           while IFS='|' read -r tag path reviewers; do
             # 使用正则匹配路径（支持子目录）
             if grep -qE "^$path(/|$)" changed_files.txt; then
               echo "$reviewers" | tr ' ' '\n' >> triggered_reviewers.txt
+              echo "$tag" | tr ' ' '\n' >> triggered_tags.txt
             fi
           done < tag_data.csv
           # 去重处理
+          # 给review列表用的,可能不需要
           awk 'NF && !seen[$0]++' triggered_reviewers.txt > unique_reviewers.txt
+          cat triggered_reviewers.txt
+          echo "------"
+          # 给修改文件列表用的
+          awk 'NF && !seen[$0]++' triggered_tags.txt > unique_tags.txt
+          cat triggered_tags.txt
+#上面主要是获取pr号和修改代码，拉取代码以及整理维护者
       - name: Restore Reviewers Cache
         id: reviewers-cache-restore 
         uses: actions/cache/restore@v4
         with: 
           path: unique_reviewers_bak.txt
-          key: ${{ runner.os }}-unique-reviewers
-
+          key: ${{ runner.os }}-unique-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}
+#尝试获取缓存，如果没有则缓存，如果有怎么办？
+#save保存？
       - name: Existing Reviewers
         if: steps.reviewers-cache-restore.outputs.cache-hit == 'true'
         run: |
@@ -145,17 +143,18 @@ jobs:
           ' <<< "$comments" >> approval_data.txt
 
 
-          existing_comment=$(curl -s \
-          "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
-          jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
-        
-          if [[ -n "$existing_comment" ]]; then
+          # existing_comment=$(curl -s \
+          # "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
+          # jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
 
-            echo "$r 第一次发送"
-          else
-            notified_users=""
-          fi
+          # if [[ -n "$existing_comment" ]]; then
 
+          #   echo "$r 第一次发送"
+          # else
+          #   notified_users=""
+          # fi
+
+          notified_users=""
           if [[ -f unique_reviewers_bak.txt ]]; then
             notified_users=$(cat unique_reviewers_bak.txt | xargs)
           else
@@ -193,7 +192,7 @@ jobs:
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
 
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
-
+          notified_users=""
           if [[ -f unique_reviewers_bak.txt ]]; then
             notified_users=$(cat unique_reviewers_bak.txt | xargs)
           else
