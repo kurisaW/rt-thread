@@ -102,11 +102,11 @@ jobs:
           # 去重处理
           # 给review列表用的,可能不需要
           awk 'NF && !seen[$0]++' triggered_reviewers.txt > unique_reviewers.txt
-          cat triggered_reviewers.txt
+          cat unique_reviewers.txt
           echo "------"
           # 给修改文件列表用的
           awk 'NF && !seen[$0]++' triggered_tags.txt > unique_tags.txt
-          cat triggered_tags.txt
+          cat unique_tags.txt
 #上面主要是获取pr号和修改代码，拉取代码以及整理维护者
       - name: Restore Reviewers Cache
         id: reviewers-cache-restore 
