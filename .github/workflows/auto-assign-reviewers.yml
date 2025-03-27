@@ -196,8 +196,8 @@ jobs:
           comment_time=$(echo "$existing_comment" | head -1 | base64 -d | jq -r .updated_at)
 
 
-          echo "$existing_comment"
-          echo "$comment_time"
+          date -d "$comment_time" +%s
+          
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
 
 
