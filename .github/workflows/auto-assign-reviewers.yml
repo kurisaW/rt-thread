@@ -201,11 +201,11 @@ jobs:
             unique_tags_bak=$(cat unique_tags_bak.txt | xargs)
           fi
           existing_tags=""
-          for tag in $unique_tags; do
-            if [[ " ${unique_tags_bak[@]} " =~ " $tag " ]]; then
-              echo "$tag 不存在于数组中"
+          for r in $unique_tags; do
+            if [[ " ${unique_tags_bak[@]} " =~ " $r " ]]; then
+              echo "$r 不存在于数组中"
             else
-              existing_tags+= "$tag "
+              existing_tags+= "$r "
             fi
           done
 
@@ -259,10 +259,6 @@ jobs:
             echo "> ℹ️ **刷新CI状态操作需要具备仓库写入权限。**"
             echo "> ℹ️ **Refresh CI status operation requires repository Write permission.**"
           } > review_data.md
-
-          cp unique_reviewers.txt unique_reviewers_bak.txt
-          cp unique_tags.txt unique_tags_bak.txt
-
       - name: Post/Update comment
         id: post_comment
         run: |
@@ -307,6 +303,8 @@ jobs:
           fi
 
           echo "COMMENT_TIME=${comment_time}"
+          cp unique_reviewers.txt unique_reviewers_bak.txt
+          cp unique_tags.txt unique_tags_bak.txt
       - name: Restore Reviewers Save
         id: reviewers-cache-save
         uses: actions/cache/save@v4
