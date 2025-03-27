@@ -96,13 +96,16 @@ jobs:
         id: reviewers-cache-restore 
         uses: actions/cache/restore@v4
         with: 
-          path: unique_reviewers_bak.txt
-          key: ${{ runner.os }}-unique-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}
+          path: |
+            unique_tags_bak.txt
+            unique_reviewers_bak.txt
+          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}
 #尝试获取缓存，如果没有则缓存，如果有怎么办？
 #save保存？
       - name: Existing Reviewers
         if: steps.reviewers-cache-restore.outputs.cache-hit == 'true'
         run: |
+          cat unique_tags_bak.txt
           cat unique_reviewers_bak.txt
       - name: Get approval status
         id: get_approval
@@ -167,19 +170,19 @@ jobs:
             while read -r reviewer; do
               formatted_reviewers=""
               # for r in $reviewers; do
-                if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
-                    formatted_reviewers+="${reviewer#@}"
-                else
-                    formatted_reviewers+="$reviewer"
-                fi
+                # if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
+                #     formatted_reviewers+="${reviewer#@}"
+                # else
+                #     formatted_reviewers+="$reviewer"
+                # fi
               # done
             
               if [[ -n "${approvals[$reviewer]}" ]]; then
                 timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
                 
-                echo "- ✅ **$formatted_reviewers** Reviewed On $timestamp"
+                echo "- ✅ **${reviewer#@}** Reviewed On $timestamp"
               else
-                echo "- ⌛ **$formatted_reviewers** Pending Review"
+                echo "- ⌛ **$reviewer** Pending Review"
               fi
             done < unique_reviewers.txt
           } > review_status.md
@@ -266,14 +269,15 @@ jobs:
           } > review_data.md
 
           cp unique_reviewers.txt unique_reviewers_bak.txt
+          cp unique_tags.txt unique_tags_bak.txt
       - name: Restore Reviewers Save
         id: reviewers-cache-save
         uses: actions/cache/save@v4
-        if: always() && steps.reviewers-cache-restore.outputs.cache-hit != 'true'
         with:
           path: |
+            unique_tags_bak.txt
             unique_reviewers_bak.txt
-          key: ${{ runner.os }}-unique-reviewers
+          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}
       - name: Post/Update comment
         id: post_comment
         run: |
