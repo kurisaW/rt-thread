@@ -171,9 +171,9 @@ jobs:
               formatted_reviewers=""
               # for r in $reviewers; do
                 # if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
-                #     formatted_reviewers+="${reviewer#@}"
+                #     formatted_reviewers+="${reviewer#@} "
                 # else
-                #     formatted_reviewers+="$reviewer"
+                #     formatted_reviewers+="$reviewer "
                 # fi
               # done
             
@@ -195,30 +195,23 @@ jobs:
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
 
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
-          notified_users=""
-          if [[ -f unique_reviewers_bak.txt ]]; then
-            notified_users=$(cat unique_reviewers_bak.txt | xargs)
-          else
-            notified_users=""
-          fi
-          # 获取历史已通知的审核者（从现有评论中提取）
-          if [[ -n "$existing_comment" ]]; then
-            echo "$r 第一次发送"
-          else
-            notified_users=""
-          fi
-          existing_reviewers=()
-          for user in $unique_reviewers; do
-            if [[ " ${notified_users[@]} " =~ " $user " ]]; then
+
+
+          unique_tags=$(cat unique_tags.txt | xargs)
+
+          unique_tags_bak=$(cat unique_tags_bak.txt | xargs)
+
+          existing_tags=""
+          for tag in $unique_tags; do
+            if [[ " ${unique_tags_bak[@]} " =~ " $tag " ]]; then
               echo "$r 不存在于数组中"
             else
-              existing_reviewers+=("$user") 
+              existing_tags+= "$tag "
             fi
           done
 
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
-            echo "<!-- NOTIFIED_REVIEWERS:  ${unique_reviewers[*]} -->"
 
             # 生成审查分配信息
             echo "## 📌 Code Review Assignment"
@@ -229,16 +222,25 @@ jobs:
                 echo "### 🏷️ Tag: $tag"
                 echo "**Path:** \`$path\`  "
 
+                #判断当前tag是否显示过,如果有，则全部去掉@,没有则直接输出
+                if [[ " ${existing_tags[@]} " =~ " $tag " ]]; then
+                  echo "**Reviewers:** $reviewers  "
+                else
+                  formatted_reviewers=""
+                  for r in $reviewers; do
+                    formatted_reviewers+="${r#@} "
+                  done
+                fi
                 # 处理评审者显示逻辑
-                formatted_reviewers=""
-                for r in $reviewers; do
-                  if [[ " ${existing_reviewers[@]} " =~ " $r " ]]; then
-                    formatted_reviewers+="$r "       # 新审核者带@
-                  else
-                    formatted_reviewers+="${r#@} "   # 已有审核者去@
-                  fi
-                done
-                echo "**Reviewers:** $formatted_reviewers  "
+                # formatted_reviewers=""
+                # for r in $reviewers; do
+                #   if [[ " ${existing_reviewers[@]} " =~ " $r " ]]; then
+                #     formatted_reviewers+="$r "       # 新审核者带@
+                #   else
+                #     formatted_reviewers+="${r#@} "   # 已有审核者去@
+                #   fi
+                # done
+                # echo "**Reviewers:** $formatted_reviewers  "
 
                 echo "<details>"
                 echo "<summary><b>Changed Files</b> (Click to expand)</summary>"
