@@ -195,7 +195,8 @@ jobs:
               fi
             done < unique_reviewers.txt
           } > review_status.md
-
+          
+          echo "CURRENT_TIME=${current_time}" >> $GITHUB_OUTPUT
       - name: Generate review data
         id: generate_review
         run: |
@@ -293,22 +294,21 @@ jobs:
       - name: Get Comment Time
         id: get_comment_time
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_OUTPUT
           existing_comment=$(curl -s \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
-          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} | @base64')
+          jq -r '.[] | select(.user.login == "github-actions[bot]") | {body: .body} | @base64')
 
-          comment_time=""
-          if [[ ! -z "$existing_comment" ]]; then
-            comment_time=$(echo "$existing_comment" | head -1 | base64 -d | jq -r .updated_at)
-            comment_time=$(date -d "$comment_time" +%s)
-            echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
-          else
-            echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
-          fi
+          comment_body=${{ steps.get_approval.outputs.CURRENT_TIME }}
+
+          comment_time=$(date -d "$comment_body" +%s)
+
+          echo "${comment_body}"
+          echo "CURRENT_TIME=${current_time}" >> $GITHUB_OUTPUT
+
 
           echo "COMMENT_TIME=${comment_time}"
+
+
           cp unique_reviewers.txt unique_reviewers_bak.txt
           cp unique_tags.txt unique_tags_bak.txt
       - name: Restore Reviewers Save
@@ -318,4 +318,4 @@ jobs:
           path: |
             unique_tags_bak.txt
             unique_reviewers_bak.txt
-          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}-${{ steps.get_comment_time.outputs.COMMENT_TIME }}
+          key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}-${{ steps.get_comment_time.outputs.CURRENT_TIME }}
