@@ -192,7 +192,7 @@ jobs:
         run: |
           existing_comment=$(curl -s \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
-          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at}' )
+          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} ')
           comment_time=$(echo "$existing_comment" | head -1  | jq -r .updated_at)
 
 
