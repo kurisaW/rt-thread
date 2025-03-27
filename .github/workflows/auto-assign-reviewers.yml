@@ -194,10 +194,8 @@ jobs:
       - name: Generate review data
         id: generate_review
         run: |
-
-
+          unique_tags=""
           unique_tags=$(cat unique_tags.txt | xargs)
-
           unique_tags_bak=""
           if [[ -f unique_tags_bak.txt ]]; then
             unique_tags_bak=$(cat unique_tags_bak.txt | xargs)
@@ -210,12 +208,6 @@ jobs:
               existing_tags+= "$tag "
             fi
           done
-          
-          echo "$unique_tags"
-
-          echo "$unique_tags_bak"
-
-          echo "$existing_tags"
 
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
