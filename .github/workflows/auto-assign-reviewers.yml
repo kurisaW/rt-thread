@@ -114,7 +114,7 @@ jobs:
 #上面主要是获取pr号和修改代码，拉取代码以及整理维护者
       - name: Restore Reviewers Cache
         id: reviewers-cache-restore 
-        if: ${{ steps.changed_files.outputs.COMMENT_TIME != "" }}
+        if: ${{ steps.changed_files.outputs.COMMENT_TIME != '' }}
         uses: actions/cache/restore@v4
         with: 
           path: |
