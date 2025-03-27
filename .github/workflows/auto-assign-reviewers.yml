@@ -298,7 +298,7 @@ jobs:
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {body: .body} | @base64')
 
-          comment_body=${{ steps.get_approval.outputs.CURRENT_TIME }}
+          comment_body="${{ steps.get_approval.outputs.CURRENT_TIME }}"
 
           comment_time=$(date -d "$comment_body" +%s)
 
