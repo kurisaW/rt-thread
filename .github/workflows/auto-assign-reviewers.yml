@@ -192,8 +192,11 @@ jobs:
         run: |
           existing_comment=$(curl -s \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
-          jq -r '.[] | select(.user.login == "github-actions[bot]") | {id: .id, body: .body} | @base64')
+          jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} | @base64')
 
+
+          cat existing_comment
+          
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
 
 
