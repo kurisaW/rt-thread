@@ -303,11 +303,8 @@ jobs:
           comment_time=$(date -d "$comment_body" +%s)
 
           echo "${comment_body}"
-          echo "CURRENT_TIME=${current_time}" >> $GITHUB_OUTPUT
-
-
-          echo "COMMENT_TIME=${comment_time}"
-
+          echo "CURRENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
+          echo "CURRENT_TIME=${comment_time}"
 
           cp unique_reviewers.txt unique_reviewers_bak.txt
           cp unique_tags.txt unique_tags_bak.txt
