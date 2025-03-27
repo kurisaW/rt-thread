@@ -195,7 +195,8 @@ jobs:
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {updated_at: .updated_at} | @base64')
 
 
-          cat existing_comment
+
+          echo "$existing_comment"
           
           unique_reviewers=$(cat unique_reviewers.txt | xargs)
 
@@ -212,6 +213,12 @@ jobs:
               existing_tags+= "$tag "
             fi
           done
+          
+          echo "$unique_tags"
+
+          echo "$unique_tags_bak"
+
+          echo "$existing_tags"
 
           current_time=$(date -u +"%Y-%m-%d %H:%M UTC")
           {
