@@ -203,7 +203,7 @@ jobs:
           existing_tags=""
           for tag in $unique_tags; do
             if [[ " ${unique_tags_bak[@]} " =~ " $tag " ]]; then
-              echo "$r 不存在于数组中"
+              echo "$tag 不存在于数组中"
             else
               existing_tags+= "$tag "
             fi
