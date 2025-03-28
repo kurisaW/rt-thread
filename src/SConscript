@@ -5,7 +5,7 @@ src = Glob('*.c')
 cwd = GetCurrentDir()
 inc = [os.path.join(cwd, '..', 'include')] 
 
-if GetDepend('RT_USING_SMALL_MEM') == False:
+if GetDepend('RT_USING_SMALL_MEM') == False: 
     SrcRemove(src, ['mem.c'])
 
 if GetDepend('RT_USING_SLAB') == False:
