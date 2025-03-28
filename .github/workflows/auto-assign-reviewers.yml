@@ -169,9 +169,9 @@ jobs:
               if [[ -n "${approvals[$reviewer]}" ]]; then
                 timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
                 
-                echo "- ✅ **${reviewer#@}** Reviewed On $timestamp"
+                echo "- ✅ **$formatted_reviewers** Reviewed On $timestamp"
               else
-                echo "- ⌛ **$reviewer** Pending Review"
+                echo "- ⌛ **$formatted_reviewers** Pending Review"
               fi
             done < unique_reviewers.txt
           } > review_status.md
