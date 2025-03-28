@@ -8,7 +8,7 @@
 *.exe
 *.pdb
 *.idb
-*.ilk
+*.ilk 
 *.old
 build
 Debug
