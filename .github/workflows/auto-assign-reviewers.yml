@@ -160,9 +160,9 @@ jobs:
               formatted_reviewers=""
               for r in $reviewers; do
                 if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
-                    formatted_reviewers+="${reviewer#@} "
+                    formatted_reviewers+="${reviewer#@}"
                 else
-                    formatted_reviewers+="$reviewer "
+                    formatted_reviewers+="$reviewer"
                 fi
               done
             
