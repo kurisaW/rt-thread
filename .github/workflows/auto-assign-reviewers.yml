@@ -10,7 +10,7 @@
 
 # Script Function Description: Assign PR reviews based on the MAINTAINERS list.
 
-name: Auto Review Assistant
+name: Auto Review Assistant 
 
 on:
   pull_request_target:
