@@ -178,13 +178,13 @@ jobs:
             echo "### 📊 Current Review Status (Last Updated: $current_time)"
             while read -r reviewer; do
               formatted_reviewers=""
-              # for r in $reviewers; do
-                # if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
-                #     formatted_reviewers+="${reviewer#@} "
-                # else
-                #     formatted_reviewers+="$reviewer "
-                # fi
-              # done
+              for r in $reviewers; do
+                if [[ " ${notified_users[@]} " =~ " $reviewer " ]]; then
+                    formatted_reviewers+="${reviewer#@} "
+                else
+                    formatted_reviewers+="$reviewer "
+                fi
+              done
             
               if [[ -n "${approvals[$reviewer]}" ]]; then
                 timestamp=$(date -d "${approvals[$reviewer]}" -u +"%Y-%m-%d %H:%M UTC")
@@ -228,7 +228,6 @@ jobs:
                 echo "### 🏷️ Tag: $tag"
                 echo "**Path:** \`$path\`  "
 
-                #判断当前tag是否显示过,如果有，则全部去掉@,没有则直接输出
                 if [[ " ${existing_tags[@]} " =~ " $tag " ]]; then
                   echo "**Reviewers:** $reviewers  "
                 else
