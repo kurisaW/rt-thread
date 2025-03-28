@@ -14,13 +14,8 @@ name: Auto Review Assistant
 
 on:
   pull_request_target:
+    branches: [ master ]
     types: [opened, synchronize, reopened]
-
-  # issue_comment:
-  #   types: [created]
-  #   if: github.event.issue.pull_request
-  #   branches:
-  #     - 'master'
 
 jobs:
   assign-reviewers:
@@ -38,6 +33,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: master
+          sparse-checkout: MAINTAINERS
           persist-credentials: false
       - name: Get changed files
         id: changed_files
@@ -64,9 +61,7 @@ jobs:
             comment_time=""
             echo "COMMENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
           fi
-
           echo "COMMENT_TIME=${comment_time}"
-          
       - name: Parse MAINTAINERS file
         id: parse_maintainer
         run: |
@@ -89,7 +84,6 @@ jobs:
               print tag "|" path "|" github_ids
             }
           ' MAINTAINERS > tag_data.csv
-          cat tag_data.csv
       - name: Generate reviewers list
         id: generate_reviewers
         run: |
@@ -103,15 +97,8 @@ jobs:
               echo "$tag" | tr ' ' '\n' >> triggered_tags.txt
             fi
           done < tag_data.csv
-          # 去重处理
-          # 给review列表用的,可能不需要
           awk 'NF && !seen[$0]++' triggered_reviewers.txt > unique_reviewers.txt
-          cat unique_reviewers.txt
-          echo "------"
-          # 给修改文件列表用的
           awk 'NF && !seen[$0]++' triggered_tags.txt > unique_tags.txt
-          cat unique_tags.txt
-#上面主要是获取pr号和修改代码，拉取代码以及整理维护者
       - name: Restore Reviewers Cache
         id: reviewers-cache-restore 
         if: ${{ steps.changed_files.outputs.COMMENT_TIME != '' }}
@@ -121,13 +108,6 @@ jobs:
             unique_tags_bak.txt
             unique_reviewers_bak.txt
           key: ${{ runner.os }}-auto-assign-reviewers-${{ steps.extract-pr.outputs.PR_NUMBER }}-${{ steps.changed_files.outputs.COMMENT_TIME }}
-#尝试获取缓存，如果没有则缓存，如果有怎么办？
-#save保存？
-      - name: Existing Reviewers
-        if: steps.reviewers-cache-restore.outputs.cache-hit == 'true'
-        run: |
-          cat unique_tags_bak.txt
-          cat unique_reviewers_bak.txt
       - name: Get approval status
         id: get_approval
         run: |
@@ -172,7 +152,7 @@ jobs:
           else
             notified_users=""
           fi
-          echo "${notified_users[@]}"
+
           {
             echo "---"
             echo "### 📊 Current Review Status (Last Updated: $current_time)"
@@ -296,15 +276,9 @@ jobs:
           existing_comment=$(curl -s \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.extract-pr.outputs.PR_NUMBER }}/comments" | \
           jq -r '.[] | select(.user.login == "github-actions[bot]") | {body: .body} | @base64')
-
           comment_body="${{ steps.get_approval.outputs.CURRENT_TIME }}"
-
           comment_time=$(date -d "$comment_body" +%s)
-
-          echo "${comment_body}"
           echo "CURRENT_TIME=${comment_time}" >> $GITHUB_OUTPUT
-          echo "CURRENT_TIME=${comment_time}"
-
           cp unique_reviewers.txt unique_reviewers_bak.txt
           cp unique_tags.txt unique_tags_bak.txt
       - name: Restore Reviewers Save
