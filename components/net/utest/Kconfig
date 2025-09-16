@@ -1,8 +1,22 @@
-if RT_USING_LWIP
-    menu "LwIP Network Unit Testcase"
 
-    config RT_UTEST_TC_USING_LWIP
-        bool "lwIP API test"
+
+menu "Network Unit Testcase"
+
+    menuconfig RT_UTEST_TC_USING_SAL
+        select RT_USING_SAL
+        bool "SAL Unit Testcase"
+        default n
+        if RT_UTEST_TC_USING_SAL
+            config RT_UTEST_SAL_INIT
+                bool "SAL init test"
+                default n
+        endif
+        
+
+    menuconfig RT_UTEST_TC_USING_LWIP
+        select RT_USING_LWIP
+        bool "LwIP Unit Testcase"
+        default n
         help
             Enable lwIP network stack unit tests including DNS resolution,
             TCP/UDP socket operations, and network interface tests
@@ -103,5 +117,4 @@ if RT_USING_LWIP
                     This should match the actual IP of the test domain
 
         endif
-    endmenu
-endif
+endmenu
