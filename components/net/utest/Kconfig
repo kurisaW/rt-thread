@@ -6,11 +6,6 @@ menu "Network Unit Testcase"
         select RT_USING_SAL
         bool "SAL Unit Testcase"
         default n
-        if RT_UTEST_TC_USING_SAL
-            config RT_UTEST_SAL_INIT
-                bool "SAL init test"
-                default n
-        endif
         
 
     menuconfig RT_UTEST_TC_USING_LWIP
