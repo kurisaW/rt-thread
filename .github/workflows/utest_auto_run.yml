@@ -18,6 +18,13 @@ on:
       - documentation/**
       - '**/README.md'
       - '**/README_zh.md'
+  workflow_dispatch:
+    inputs:
+      trigger_type:
+        description: '触发类型'
+        required: false
+        default: 'manual'
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,7 +37,7 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     name: ${{ matrix.platform.UTEST }} :${{ matrix.config_file }}
-    if: github.repository_owner == 'RT-Thread'
+    # if: github.repository_owner == 'RT-Thread'
     strategy:
       fail-fast: false
       matrix:
